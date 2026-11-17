@@ -1,0 +1,563 @@
+:root {
+  --ink: #07100b;
+  --mist: #e6f0e8;
+  /* the one colour that is not ink or mist: the crystals' own */
+  --signal: #7dffa0;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #030504;
+  color: var(--mist);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* What is drawn over the picture is light, for the cave is dark from end to end (--lit: 0 would make it dark instead). */
+.experience {
+  --lit: 1;
+  --hud: color-mix(in srgb, var(--ink), var(--mist) calc(var(--lit) * 100%));
+  --back: color-mix(in srgb, var(--mist), var(--ink) calc(var(--lit) * 100%));
+  --halo: color-mix(in srgb, rgba(238, 242, 238, 0.5), rgba(20, 35, 28, 0.75) calc(var(--lit) * 100%));
+  --mark: color-mix(in srgb, #a9620a, var(--signal) calc(var(--lit) * 100%));
+  color: var(--hud);
+}
+
+.stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.stage canvas {
+  display: block;
+}
+
+/* four corners marking out the picture */
+.frame {
+  position: fixed;
+  inset: 14px;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.frame i {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 0 solid currentColor;
+}
+
+.frame i:nth-child(1) {
+  top: 0;
+  left: 0;
+  border-width: 1px 0 0 1px;
+}
+
+.frame i:nth-child(2) {
+  top: 0;
+  right: 0;
+  border-width: 1px 1px 0 0;
+}
+
+.frame i:nth-child(3) {
+  bottom: 0;
+  right: 0;
+  border-width: 0 1px 1px 0;
+}
+
+.frame i:nth-child(4) {
+  bottom: 0;
+  left: 0;
+  border-width: 0 0 1px 1px;
+}
+
+/* how far a button has come on (0–1); declared so that it can be moved over time */
+@property --on {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+/* a button: its label between four small corners; pointed at, it fills in from its middle, short of the corners */
+.key {
+  padding: 1.05em 1.5em;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  border: 0;
+  cursor: pointer;
+  --corner: currentColor;
+  --fill: var(--hud);
+  --arm: calc(7px + 4px * var(--on));
+  background:
+    linear-gradient(var(--corner), var(--corner)) 0 0 / var(--arm) 1px,
+    linear-gradient(var(--corner), var(--corner)) 0 0 / 1px var(--arm),
+    linear-gradient(var(--corner), var(--corner)) 100% 0 / var(--arm) 1px,
+    linear-gradient(var(--corner), var(--corner)) 100% 0 / 1px var(--arm),
+    linear-gradient(var(--corner), var(--corner)) 0 100% / var(--arm) 1px,
+    linear-gradient(var(--corner), var(--corner)) 0 100% / 1px var(--arm),
+    linear-gradient(var(--corner), var(--corner)) 100% 100% / var(--arm) 1px,
+    linear-gradient(var(--corner), var(--corner)) 100% 100% / 1px var(--arm),
+    linear-gradient(var(--fill), var(--fill)) 50% 50% / calc((100% - 10px) * var(--on)) calc(100% - 10px);
+  background-repeat: no-repeat;
+  transition: --on 0.16s cubic-bezier(0.2, 1, 0.3, 1), color 0s 0.04s;
+}
+
+.key:hover,
+.key:focus-visible {
+  outline: none;
+  color: var(--back);
+  text-shadow: none;
+  --corner: color-mix(in srgb, var(--ink), var(--signal) calc(var(--lit) * 100%));
+  --on: 1;
+}
+
+/* ---------------------------------------------------------------- on the way in */
+
+.signature,
+.readout,
+.reticle,
+.rail,
+.keys,
+.scroll-hint,
+.ending {
+  position: fixed;
+  z-index: 8;
+  text-shadow: 0 0 3px var(--halo), 0 0 14px var(--halo);
+}
+
+.frame,
+.reticle svg,
+.rail {
+  filter: drop-shadow(0 0 2px var(--halo));
+}
+
+.frame,
+.signature,
+.readout,
+.reticle,
+.rail,
+.keys {
+  animation: soft-in 1.6s ease-out both;
+}
+
+.signature {
+  top: 34px;
+  right: 36px;
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  color: inherit;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.signature svg {
+  width: 1.05em;
+  height: 1.05em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.1;
+  filter: drop-shadow(0 0 2px var(--halo));
+}
+
+.signature:hover {
+  opacity: 0.7;
+}
+
+.readout {
+  top: 34px;
+  left: 36px;
+  display: grid;
+  gap: 0.5em;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.readout div {
+  display: flex;
+  gap: 1.2em;
+}
+
+.readout dt {
+  width: 3.6em;
+  opacity: 0.62;
+}
+
+/* follows the crystals about the picture: the script moves it */
+.reticle {
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+
+.reticle.is-off {
+  opacity: 0;
+}
+
+.reticle svg {
+  position: absolute;
+  top: -15vmin;
+  left: -15vmin;
+  width: 30vmin;
+  height: 30vmin;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+}
+
+.reticle path {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1px;
+}
+
+.reticle-ticks {
+  stroke: var(--mark);
+}
+
+.reticle span {
+  position: absolute;
+  top: calc(15vmin + 0.9em);
+  left: -15vmin;
+  white-space: nowrap;
+}
+
+.rail {
+  top: 24vh;
+  bottom: 24vh;
+  right: 36px;
+  width: 11px;
+  border-right: 1px solid;
+}
+
+.rail i {
+  position: absolute;
+  right: 0;
+  width: 4px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+.rail i:nth-child(4n + 1) {
+  width: 9px;
+}
+
+.rail b {
+  position: absolute;
+  right: -1px;
+  width: 22px;
+  height: 1px;
+  background: var(--mark);
+}
+
+.keys {
+  right: 36px;
+  bottom: 34px;
+  display: flex;
+  gap: 0.9rem;
+}
+
+.scroll-hint {
+  left: 50%;
+  bottom: 11vh;
+  translate: -50% 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+  animation: soft-in 1.6s ease-out 0.6s both;
+}
+
+/* a mark that keeps time under the words */
+.scroll-hint::after {
+  content: "";
+  display: block;
+  width: 1px;
+  height: 22px;
+  margin: 0.9em auto 0;
+  background: var(--mark);
+  transform-origin: top;
+  animation: plumb 1.6s ease-in-out infinite;
+}
+
+.ending {
+  left: 50%;
+  bottom: 12vh;
+  translate: -50% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 1.4s ease, visibility 0s 1.4s;
+}
+
+.ending.is-on {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 1.8s ease 0.8s;
+}
+
+.ending p,
+.veil h1,
+.loader-name {
+  font-family: var(--font-plain), system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  text-transform: none;
+}
+
+.ending p {
+  font-size: clamp(1.9rem, 3.4vw, 3.4rem);
+  white-space: nowrap;
+}
+
+@keyframes soft-in {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+  }
+}
+
+@keyframes plumb {
+  0%,
+  100% {
+    scale: 1 0.25;
+  }
+
+  50% {
+    scale: 1 1;
+  }
+}
+
+/* ---------------------------------------------------------------- loading and title */
+
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+  padding: 24px;
+  text-align: center;
+  color: var(--mist);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.veil.is-waiting {
+  cursor: default;
+}
+
+.veil .frame {
+  filter: none;
+  animation: none;
+}
+
+/* the dark drawn closer behind the lettering */
+.veil-haze {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(ellipse at 50% 48%, rgba(3, 5, 4, 0.5), rgba(3, 5, 4, 0.82));
+}
+
+.veil h1 {
+  max-width: 16em;
+  font-size: clamp(2.6rem, 6.4vw, 6.6rem);
+}
+
+.veil h1 .word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.veil h1 .ch {
+  display: inline-block;
+  white-space: pre;
+  opacity: 0;
+}
+
+.veil .key {
+  --fill: var(--mist);
+}
+
+.veil .key:hover,
+.veil .key:focus-visible {
+  color: var(--ink);
+  --corner: var(--signal);
+}
+
+.veil .enter {
+  opacity: 0;
+  margin-top: 0.6rem;
+  cursor: inherit;
+}
+
+.veil-hint {
+  opacity: 0;
+}
+
+.loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(ellipse at 50% 42%, #0c1811 0%, #050906 60%, #020403 100%);
+}
+
+.loader-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 30rem;
+}
+
+.loader-name {
+  font-size: clamp(3rem, 7vw, 6rem);
+}
+
+.loader-about {
+  margin-top: 1.6rem;
+  line-height: 1.7;
+}
+
+.loader-bar {
+  width: min(24rem, 78vw);
+  height: 1px;
+  margin-top: 2.4rem;
+  background: rgba(230, 240, 232, 0.22);
+}
+
+.loader-bar i {
+  display: block;
+  height: 3px;
+  margin-top: -1px;
+  background: var(--signal);
+  transform-origin: left;
+}
+
+.loader-line {
+  display: flex;
+  justify-content: space-between;
+  white-space: nowrap;
+  width: min(24rem, 78vw);
+  margin-top: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.credits-toggle {
+  position: fixed;
+  left: 50%;
+  bottom: 34px;
+  translate: -50% 0;
+  animation: soft-in 0.6s ease-out 2.8s both;
+}
+
+/* the one panel: the picture blurred behind it, a hairline round it */
+.credits {
+  position: fixed;
+  bottom: 86px;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 9;
+  width: min(32rem, calc(100vw - 32px));
+  padding: 1.3rem 1.5rem;
+  line-height: 1.7;
+  text-align: left;
+  color: var(--mist);
+  text-shadow: none;
+  cursor: default;
+  background: rgba(20, 32, 27, 0.5);
+  border: 1px solid rgba(238, 242, 238, 0.5);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.credits-pop .credits {
+  left: auto;
+  right: 36px;
+  translate: none;
+}
+
+.credits p + p {
+  margin-top: 0.8em;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.credits a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------- phones */
+@media (max-width: 640px) {
+  html,
+  body {
+    font-size: 11px;
+  }
+
+  .signature,
+  .readout {
+    top: max(28px, env(safe-area-inset-top));
+  }
+
+  .readout {
+    left: 28px;
+  }
+
+  .signature,
+  .keys,
+  .rail {
+    right: 28px;
+  }
+
+  .keys {
+    bottom: max(28px, env(safe-area-inset-bottom));
+  }
+
+  .reticle svg {
+    top: -21vmin;
+    left: -21vmin;
+    width: 42vmin;
+    height: 42vmin;
+  }
+
+  .reticle span {
+    top: calc(21vmin + 0.9em);
+    left: -21vmin;
+  }
+
+  .credits-pop .credits {
+    right: 16px;
+    left: 16px;
+    width: auto;
+  }
+}
