@@ -446,6 +446,7 @@ body {
 .loader-about {
   margin-top: 1.6rem;
   line-height: 1.7;
+  text-wrap: balance;
 }
 
 .loader-bar {

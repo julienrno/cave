@@ -383,8 +383,8 @@ export default function Experience() {
               <div className="loader-card">
                 <h1 className="loader-name">cave</h1>
                 <p className="loader-about">
-                  A passage down into the rock, a chamber the sun only reaches through a hole in its roof, and something
-                  in it that gives a light of its own.
+                  A passage down into the rock, a chamber lit through a hole in its roof, and something with a light of
+                  its own.
                 </p>
                 <div
                   className="loader-bar"
